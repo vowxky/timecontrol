@@ -32,10 +32,7 @@ public class ModNetworkDispatcher
 
     public static void send(@NotNull ServerLevel level, @NotNull CustomPacketPayload packet)
     {
-        for (ServerPlayer player : level.players())
-        {
-            ServerPlayNetworking.send(player, packet);
-        }
+        level.players().forEach(serverPlayer -> ServerPlayNetworking.send(serverPlayer, packet));
     }
 
     public static class PacketDesignation
