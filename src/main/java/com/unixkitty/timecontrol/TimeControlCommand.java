@@ -105,7 +105,7 @@ public class TimeControlCommand
         {
             Config.save();
 
-            ModNetworkDispatcher.send(context.getSource().getLevel(), new ConfigS2CPacket());
+            ModNetworkDispatcher.send(context.getSource().getLevel(), ConfigS2CPacket.fromConfig());
 
             sendFeedback(context, configValue, true);
         }

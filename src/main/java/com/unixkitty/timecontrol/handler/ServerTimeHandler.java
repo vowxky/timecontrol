@@ -94,7 +94,7 @@ public final class ServerTimeHandler extends TimeHandler
 
                     //This is to keep client multipliers in sync
                     updateClientsTime(serverLevel);
-                    ModNetworkDispatcher.send(serverLevel, new GamerulesS2CPacket(serverLevel));
+                    ModNetworkDispatcher.send(serverLevel, GamerulesS2CPacket.fromServerLevel(serverLevel));
 
                     if (Config.debug.get())
                     {

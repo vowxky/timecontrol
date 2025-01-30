@@ -1,66 +1,55 @@
 package com.unixkitty.timecontrol.network;
 
-import com.unixkitty.timecontrol.TimeControl;
-import com.unixkitty.timecontrol.network.packet.BasePacket;
 import com.unixkitty.timecontrol.network.packet.ConfigS2CPacket;
 import com.unixkitty.timecontrol.network.packet.GamerulesS2CPacket;
 import com.unixkitty.timecontrol.network.packet.TimeS2CPacket;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.NotNull;
 
 public class ModNetworkDispatcher
 {
-    public static final Object2ObjectOpenHashMap<Class<? extends BasePacket>, PacketDesignation> REGISTRY = new Object2ObjectOpenHashMap<>();
-
-    private static int packetId = 0;
+    public static final Object2ObjectOpenHashMap<Class<? extends CustomPacketPayload>, PacketDesignation> REGISTRY = new Object2ObjectOpenHashMap<>();
 
     static
     {
-        registerPacket(TimeS2CPacket.class);
-        registerPacket(GamerulesS2CPacket.class);
-        registerPacket(ConfigS2CPacket.class);
+        registerPacket(TimeS2CPacket.class, TimeS2CPacket.TYPE, TimeS2CPacket.CODEC);
+        registerPacket(GamerulesS2CPacket.class, GamerulesS2CPacket.TYPE, GamerulesS2CPacket.CODEC);
+        registerPacket(ConfigS2CPacket.class, ConfigS2CPacket.TYPE, ConfigS2CPacket.CODEC);
     }
 
-    private static void registerPacket(Class<? extends BasePacket> packetClass)
+    private static <T extends CustomPacketPayload> void registerPacket(Class<T> packetClass, CustomPacketPayload.Type<T> type, StreamCodec<FriendlyByteBuf, T> codec)
     {
-        REGISTRY.put(packetClass, new PacketDesignation(id(), true));
+        PayloadTypeRegistry.playS2C().register(type, codec);
+        REGISTRY.put(packetClass, new PacketDesignation(type));
     }
 
-    private static int id()
+    public static void send(@NotNull ServerLevel level, @NotNull CustomPacketPayload packet)
     {
-        return packetId++;
-    }
-
-    //TODO test if players in other dimensions also receive the packet
-    public static void send(@NotNull ServerLevel level, @NotNull BasePacket packet)
-    {
-        level.players().forEach(player ->
-                ServerPlayNetworking.send(player, REGISTRY.get(packet.getClass()).getId(), packet.toBytes(PacketByteBufs.create())));
+        for (ServerPlayer player : level.players())
+        {
+            ServerPlayNetworking.send(player, packet);
+        }
     }
 
     public static class PacketDesignation
     {
-        private final ResourceLocation id;
-        private final boolean clientBound;
+        private final CustomPacketPayload.Type<? extends CustomPacketPayload> type;
 
-        private PacketDesignation(int id, boolean clientBound)
+        private PacketDesignation(CustomPacketPayload.Type<? extends CustomPacketPayload> type)
         {
-            this.id = new ResourceLocation(TimeControl.MODID, "messages_" + id);
-            this.clientBound = clientBound;
+            this.type = type;
         }
 
-        public ResourceLocation getId()
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> getType()
         {
-            return this.id;
-        }
-
-        public boolean isClientBound()
-        {
-            return this.clientBound;
+            return this.type;
         }
     }
 }

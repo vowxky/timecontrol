@@ -2,33 +2,35 @@ package com.unixkitty.timecontrol.network.packet;
 
 import com.unixkitty.timecontrol.TimeControl;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.GameRules;
-import org.jetbrains.annotations.NotNull;
 
-public class GamerulesS2CPacket extends BasePacket
+public record GamerulesS2CPacket(boolean vanillaRuleValue, boolean modRuleValue) implements CustomPacketPayload
 {
-    public final boolean vanillaRuleValue;
-    public final boolean modRuleValue;
+    public static final CustomPacketPayload.Type<GamerulesS2CPacket> TYPE =
+            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(TimeControl.MODID, "gamerules_packet"));
 
-    public GamerulesS2CPacket(@NotNull ServerLevel world)
-    {
-        this.vanillaRuleValue = world.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT);
-        this.modRuleValue = world.getGameRules().getBoolean(TimeControl.DO_DAYLIGHT_CYCLE_TC);
-    }
-
-    public GamerulesS2CPacket(FriendlyByteBuf buffer)
-    {
-        this.vanillaRuleValue = buffer.readBoolean();
-        this.modRuleValue = buffer.readBoolean();
-    }
+    public static final StreamCodec<FriendlyByteBuf, GamerulesS2CPacket> CODEC =
+            StreamCodec.composite(
+                    StreamCodec.of(FriendlyByteBuf::writeBoolean, FriendlyByteBuf::readBoolean), GamerulesS2CPacket::vanillaRuleValue,
+                    StreamCodec.of(FriendlyByteBuf::writeBoolean, FriendlyByteBuf::readBoolean), GamerulesS2CPacket::modRuleValue,
+                    GamerulesS2CPacket::new
+            );
 
     @Override
-    public FriendlyByteBuf toBytes(FriendlyByteBuf buffer)
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type()
     {
-        buffer.writeBoolean(this.vanillaRuleValue);
-        buffer.writeBoolean(this.modRuleValue);
+        return TYPE;
+    }
 
-        return buffer;
+    public static GamerulesS2CPacket fromServerLevel(ServerLevel world)
+    {
+        return new GamerulesS2CPacket(
+                world.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT),
+                world.getGameRules().getBoolean(TimeControl.DO_DAYLIGHT_CYCLE_TC)
+        );
     }
 }

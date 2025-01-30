@@ -11,6 +11,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import org.apache.logging.log4j.LogManager;
@@ -105,7 +106,7 @@ public final class ClientTimeHandler extends TimeHandler
         }
     }
 
-    public static void handlePacket(BasePacket packet, Minecraft client)
+    public static void handlePacket(CustomPacketPayload packet, Minecraft client)
     {
         if (Config.ignore_server.get())
         {
@@ -114,23 +115,23 @@ public final class ClientTimeHandler extends TimeHandler
 
         if (packet instanceof TimeS2CPacket message)
         {
-            instance.update(null, message.customtime, message.multiplier);
+            instance.update(null, message.customtime(), message.multiplier());
         }
         else if (packet instanceof GamerulesS2CPacket message)
         {
             if (client.level != null)
             {
-                client.level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(message.vanillaRuleValue, null);
-                client.level.getGameRules().getRule(TimeControl.DO_DAYLIGHT_CYCLE_TC).set(message.modRuleValue, null);
+                client.level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(message.vanillaRuleValue(), null);
+                client.level.getGameRules().getRule(TimeControl.DO_DAYLIGHT_CYCLE_TC).set(message.modRuleValue(), null);
             }
         }
         else if (packet instanceof ConfigS2CPacket message)
         {
-            Config.day_length_seconds.set(message.day_length_seconds);
-            Config.night_length_seconds.set(message.night_length_seconds);
-            Config.sync_to_system_time_rate.set(message.sync_to_system_time_rate);
-            Config.sync_to_system_time.set(message.sync_to_system_time);
-            Config.sync_to_system_time_offset.set(message.sync_to_system_time_offset);
+            Config.day_length_seconds.set(message.day_length_seconds());
+            Config.night_length_seconds.set(message.night_length_seconds());
+            Config.sync_to_system_time_rate.set(message.sync_to_system_time_rate());
+            Config.sync_to_system_time.set(message.sync_to_system_time());
+            Config.sync_to_system_time_offset.set(message.sync_to_system_time_offset());
 
             Config.save();
         }
